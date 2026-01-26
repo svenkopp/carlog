@@ -1,0 +1,16 @@
+{
+  "title": "CarLog",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Auto toevoegen",
+        "description": "Voeg een auto toe aan CarLog.",
+        "data": {
+          "name": "Naam",
+          "car_id": "Auto ID",
+          "tank_capacity_l": "Tankinhoud (L)"
+        }
+      }
+    }
+  }
+}

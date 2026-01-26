@@ -1,0 +1,9 @@
+{
+  "name": "CarLog",
+  "content_in_root": false,
+  "render_readme": true,
+  "domains": [
+    "carlog"
+  ],
+  "homeassistant": "2024.6.0"
+}

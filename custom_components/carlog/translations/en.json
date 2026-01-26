@@ -1,0 +1,15 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add car",
+        "description": "Add a car to CarLog.",
+        "data": {
+          "name": "Name",
+          "car_id": "Car ID",
+          "tank_capacity_l": "Tank capacity (L)"
+        }
+      }
+    }
+  }
+}

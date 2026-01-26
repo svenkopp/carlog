@@ -1,0 +1,166 @@
+log_fuel:
+  name: Tankbeurt loggen
+  description: Log liters en kilometerstand (en optioneel totale prijs).
+  fields:
+    car_id:
+      required: true
+      selector:
+        text:
+    odometer_km:
+      required: true
+      selector:
+        number:
+          min: 0
+          step: 1
+          mode: box
+          unit_of_measurement: km
+    liters:
+      required: true
+      selector:
+        number:
+          min: 0
+          step: 0.01
+          mode: box
+          unit_of_measurement: L
+    price_total:
+      required: false
+      selector:
+        number:
+          min: 0
+          step: 0.01
+          mode: box
+          unit_of_measurement: EUR
+
+update_fuel_entry:
+  name: Tankbeurt aanpassen
+  description: Pas een tankbeurt aan op basis van timestamp (ts).
+  fields:
+    car_id:
+      required: true
+      selector:
+        text:
+    ts:
+      required: true
+      selector:
+        text:
+    odometer_km:
+      required: false
+      selector:
+        number:
+          min: 0
+          step: 1
+          mode: box
+          unit_of_measurement: km
+    liters:
+      required: false
+      selector:
+        number:
+          min: 0
+          step: 0.01
+          mode: box
+          unit_of_measurement: L
+    price_total:
+      required: false
+      selector:
+        number:
+          min: 0
+          step: 0.01
+          mode: box
+          unit_of_measurement: EUR
+
+delete_fuel_entry:
+  name: Tankbeurt verwijderen
+  description: Verwijder een tankbeurt op basis van ts. Laat ts leeg om de laatste te verwijderen.
+  fields:
+    car_id:
+      required: true
+      selector:
+        text:
+    ts:
+      required: false
+      selector:
+        text:
+
+log_maintenance:
+  name: Onderhoud loggen
+  description: Log onderhoudsactie met kilometerstand en optionele datum.
+  fields:
+    car_id:
+      required: true
+      selector:
+        text:
+    type:
+      required: true
+      selector:
+        select:
+          options:
+            - oil
+            - tires
+            - brakes
+            - other
+    odometer_km:
+      required: true
+      selector:
+        number:
+          min: 0
+          step: 1
+          mode: box
+          unit_of_measurement: km
+    date:
+      required: false
+      selector:
+        date:
+    note:
+      required: false
+      selector:
+        text:
+
+update_maintenance_entry:
+  name: Onderhoud entry aanpassen
+  description: Pas onderhoud entry (per type) aan op basis van ts.
+  fields:
+    car_id:
+      required: true
+      selector:
+        text:
+    type:
+      required: true
+      selector:
+        text:
+    ts:
+      required: true
+      selector:
+        text:
+    odometer_km:
+      required: false
+      selector:
+        number:
+          min: 0
+          step: 1
+          mode: box
+          unit_of_measurement: km
+    date:
+      required: false
+      selector:
+        date:
+    note:
+      required: false
+      selector:
+        text:
+
+delete_maintenance_entry:
+  name: Onderhoud entry verwijderen
+  description: Verwijder onderhoud entry (per type) op basis van ts. Laat ts leeg om de laatste te verwijderen.
+  fields:
+    car_id:
+      required: true
+      selector:
+        text:
+    type:
+      required: true
+      selector:
+        text:
+    ts:
+      required: false
+      selector:
+        text:

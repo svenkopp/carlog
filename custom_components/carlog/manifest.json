@@ -1,0 +1,13 @@
+{
+  "domain": "carlog",
+  "name": "CarLog - Auto onderhoud & brandstof",
+  "version": "0.4.0",
+  "documentation": "https://github.com/<YOUR_GITHUB_USERNAME>/carlog",
+  "issue_tracker": "https://github.com/<YOUR_GITHUB_USERNAME>/carlog/issues",
+  "requirements": [],
+  "codeowners": [
+    "@<YOUR_GITHUB_USERNAME>"
+  ],
+  "config_flow": true,
+  "iot_class": "local_push"
+}
