@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -26,6 +27,12 @@ PLATFORMS: list[Platform] = [
 def _ensure_car(data: dict, car_id: str) -> dict:
     cars = data.setdefault("cars", {})
     return cars.setdefault(car_id, {"fuel": [], "maintenance": {}, "meta": {}, "ui": {}})
+
+
+def _normalize_license_plate(value: str | None) -> str | None:
+    if not value:
+        return None
+    return re.sub(r"-", "", value).upper().strip()
 
 
 def _ensure_ui_defaults(car: dict) -> None:
@@ -252,6 +259,7 @@ async def async_setup_entry(hass: HomeAssistant, entry) -> bool:
     meta = car.setdefault("meta", {})
     meta["name"] = name
     meta.setdefault("maintenance_defaults", DEFAULT_MAINTENANCE_TYPES)
+    meta["license_plate"] = _normalize_license_plate(entry.data.get("license_plate"))
 
     # Backwards compatible tank capacity
     if "tank_capacity_l" in entry.data and entry.data["tank_capacity_l"] is not None:
@@ -303,5 +311,11 @@ async def async_migrate_entry(hass: HomeAssistant, entry) -> bool:
             new_data["tank_capacity_l"] = float(tank_from_storage)
 
         hass.config_entries.async_update_entry(entry, data=new_data, version=2)
+        current_version = 2
+
+    if current_version < 3:
+        new_data = dict(entry.data)
+        new_data["license_plate"] = _normalize_license_plate(new_data.get("license_plate"))
+        hass.config_entries.async_update_entry(entry, data=new_data, version=3)
 
     return True

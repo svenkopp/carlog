@@ -7,6 +7,7 @@
         "data": {
           "name": "Name",
           "car_id": "Car ID",
+          "license_plate": "License plate",
           "tank_capacity_l": "Tank capacity (L)"
         }
       }

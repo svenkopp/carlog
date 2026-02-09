@@ -1,15 +1,29 @@
 from __future__ import annotations
 
 import datetime as dt
+import logging
+import re
+from urllib.parse import quote
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import UnitOfLength, UnitOfVolume
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .const import DOMAIN
 from .__init__ import SIGNAL_UPDATED
+
+
+_LOGGER = logging.getLogger(__name__)
+_RDW_URL = "https://opendata.rdw.nl/resource/vkij-7mwc.json?$query={query}"
+
+
+def _normalize_license_plate(value: str | None) -> str | None:
+    if not value:
+        return None
+    return re.sub(r"-", "", value).upper().strip()
 
 
 def _fuel_stats(fuel_logs: list[dict]) -> dict:
@@ -83,6 +97,7 @@ def _maintenance_due(meta: dict, maint_type: str, maint_logs: list[dict], odomet
 async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities: AddEntitiesCallback) -> None:
     car_id = entry.data["car_id"]
     name = entry.data["name"]
+    license_plate = _normalize_license_plate(entry.data.get("license_plate"))
 
     async_add_entities(
         [
@@ -94,6 +109,7 @@ async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities: AddE
             CarMaintenanceDueSensor(hass, car_id, name, "oil"),
             CarMaintenanceDueSensor(hass, car_id, name, "tires"),
             CarMaintenanceDueSensor(hass, car_id, name, "brakes"),
+            CarApkExpirySensor(hass, car_id, name, license_plate),
         ],
         update_before_add=True,
     )
@@ -281,3 +297,69 @@ class CarSaveStatusSensor(_CarBaseSensor):
     def extra_state_attributes(self):
         rt = self._rt()
         return {"message": rt.get("message", ""), "ts": rt.get("ts")}
+
+
+class CarApkExpirySensor(_CarBaseSensor):
+    _attr_icon = "mdi:calendar-check"
+
+    def __init__(self, hass, car_id, car_name, license_plate: str | None):
+        super().__init__(hass, car_id, car_name)
+        self._attr_name = "APK vervaldatum"
+        self._attr_unique_id = f"{car_id}_apk_expiry"
+        self._license_plate = license_plate
+        self._attr_native_value = None
+        self._attr_extra_state_attributes = {"license_plate": license_plate}
+        self._last_fetch_at: dt.datetime | None = None
+        self._fetch_interval = dt.timedelta(hours=24)
+
+    @property
+    def should_poll(self) -> bool:
+        return True
+
+    async def async_update(self) -> None:
+        if not self._license_plate:
+            self._attr_native_value = None
+            self._attr_extra_state_attributes = {"license_plate": None, "status": "license_plate_missing"}
+            return
+
+        now = dt.datetime.now(dt.timezone.utc)
+        if self._last_fetch_at and (now - self._last_fetch_at) < self._fetch_interval:
+            return
+
+        query = quote(
+            f'SELECT `kenteken`, `vervaldatum_keuring`, `vervaldatum_keuring_dt` WHERE '
+            f'caseless_one_of(`kenteken`, "{self._license_plate}")'
+        )
+        url = _RDW_URL.format(query=query)
+        session = async_get_clientsession(self.hass)
+
+        try:
+            response = await session.get(url, timeout=10)
+            response.raise_for_status()
+            payload = await response.json()
+        except Exception as err:
+            _LOGGER.warning("Could not load APK expiry for %s: %s", self._license_plate, err)
+            self._attr_native_value = None
+            self._attr_extra_state_attributes = {"license_plate": self._license_plate, "status": "fetch_error"}
+            return
+
+        if not payload:
+            self._attr_native_value = None
+            self._attr_extra_state_attributes = {"license_plate": self._license_plate, "status": "not_found"}
+            return
+
+        row = payload[0]
+        iso_value = row.get("vervaldatum_keuring_dt")
+        if iso_value:
+            self._attr_native_value = dt.date.fromisoformat(iso_value[:10])
+        else:
+            self._attr_native_value = None
+
+        self._attr_extra_state_attributes = {
+            "license_plate": self._license_plate,
+            "kenteken": row.get("kenteken"),
+            "vervaldatum_keuring": row.get("vervaldatum_keuring"),
+            "status": "ok",
+            "last_fetch": now.isoformat(),
+        }
+        self._last_fetch_at = now

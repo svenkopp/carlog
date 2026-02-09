@@ -8,6 +8,7 @@
         "data": {
           "name": "Naam",
           "car_id": "Auto ID",
+          "license_plate": "Kenteken",
           "tank_capacity_l": "Tankinhoud (L)"
         }
       }
