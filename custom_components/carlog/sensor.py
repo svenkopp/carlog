@@ -122,10 +122,17 @@ class _CarBaseSensor(RestoreSensor):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        last_state = await self.async_get_last_sensor_data()
-        if last_state is not None:
-            self._restored_native_value = last_state.native_value
-            self._restored_attrs = dict(last_state.native_attrs)
+
+        last_sensor_data = await self.async_get_last_sensor_data()
+        if last_sensor_data is not None:
+            self._restored_native_value = last_sensor_data.native_value
+            self._restored_attrs = dict(last_sensor_data.native_attrs or {})
+
+        # Fallback for entities where sensor native data is missing.
+        last_state = await self.async_get_last_state()
+        if last_state is not None and not self._restored_attrs:
+            self._restored_attrs = dict(last_state.attributes)
+
         self._unsub = async_dispatcher_connect(self.hass, SIGNAL_UPDATED, self._handle_update)
 
     def _native_or_restored(self, value):
@@ -293,7 +300,11 @@ class CarSaveStatusSensor(_CarBaseSensor):
 
     @property
     def native_value(self):
-        return self._native_or_restored(self._rt().get("state", "idle"))
+        value = self._rt().get("state")
+        if value is not None:
+            return value
+        restored = self._native_or_restored(None)
+        return str(restored) if restored is not None else "idle"
 
     @property
     def extra_state_attributes(self):
