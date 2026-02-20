@@ -1,7 +1,7 @@
 {
   "domain": "carlog",
   "name": "CarLog - Auto onderhoud & brandstof",
-  "version": "0.5.0",
+  "version": "0.4.0",
   "documentation": "https://github.com/svenkopp/carlog",
   "issue_tracker": "https://github.com/svenkopp/carlog/issues",
   "requirements": [],

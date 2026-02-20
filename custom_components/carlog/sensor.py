@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from homeassistant.components.sensor import RestoreSensor, SensorStateClass
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.const import UnitOfLength, UnitOfVolume
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -99,7 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities: AddE
     )
 
 
-class _CarBaseSensor(RestoreSensor):
+class _CarBaseSensor(SensorEntity):
     _attr_has_entity_name = True
 
     def __init__(self, hass: HomeAssistant, car_id: str, car_name: str):
@@ -112,8 +112,6 @@ class _CarBaseSensor(RestoreSensor):
             "model": "Virtual Car",
         }
         self._unsub = None
-        self._restored_native_value = None
-        self._restored_attrs: dict = {}
 
     def _get_car(self) -> dict:
         return self.hass.data[DOMAIN]["data"].get("cars", {}).get(
@@ -121,18 +119,7 @@ class _CarBaseSensor(RestoreSensor):
         )
 
     async def async_added_to_hass(self) -> None:
-        await super().async_added_to_hass()
-        last_state = await self.async_get_last_sensor_data()
-        if last_state is not None:
-            self._restored_native_value = last_state.native_value
-            self._restored_attrs = dict(last_state.native_attrs)
         self._unsub = async_dispatcher_connect(self.hass, SIGNAL_UPDATED, self._handle_update)
-
-    def _native_or_restored(self, value):
-        return value if value is not None else self._restored_native_value
-
-    def _attrs_or_restored(self, attrs: dict):
-        return attrs if attrs else self._restored_attrs
 
     async def async_will_remove_from_hass(self) -> None:
         if self._unsub:
@@ -145,7 +132,6 @@ class _CarBaseSensor(RestoreSensor):
 class CarOdometerSensor(_CarBaseSensor):
     _attr_icon = "mdi:speedometer"
     _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
-    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, hass, car_id, car_name):
         super().__init__(hass, car_id, car_name)
@@ -155,13 +141,12 @@ class CarOdometerSensor(_CarBaseSensor):
     @property
     def native_value(self):
         car = self._get_car()
-        return self._native_or_restored(car.get("meta", {}).get("odometer_km"))
+        return car.get("meta", {}).get("odometer_km")
 
 
 class CarFuelAvgSensor(_CarBaseSensor):
     _attr_icon = "mdi:gas-station"
     _attr_native_unit_of_measurement = "L/100km"
-    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, hass, car_id, car_name):
         super().__init__(hass, car_id, car_name)
@@ -173,18 +158,17 @@ class CarFuelAvgSensor(_CarBaseSensor):
         car = self._get_car()
         stats = _fuel_stats(car.get("fuel", []))
         avg = stats["avg_l_per_100km"]
-        return self._native_or_restored(round(avg, 2) if avg is not None else None)
+        return round(avg, 2) if avg is not None else None
 
     @property
     def extra_state_attributes(self):
         car = self._get_car()
-        return self._attrs_or_restored({"tankbeurten": len(car.get("fuel", []))})
+        return {"tankbeurten": len(car.get("fuel", []))}
 
 
 class CarEstimatedRangeSensor(_CarBaseSensor):
     _attr_icon = "mdi:map-marker-distance"
     _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
-    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, hass, car_id, car_name):
         super().__init__(hass, car_id, car_name)
@@ -197,15 +181,15 @@ class CarEstimatedRangeSensor(_CarBaseSensor):
         meta = car.get("meta", {})
         cap = meta.get("tank_capacity_l")
         if cap is None:
-            return self._native_or_restored(None)
+            return None
 
         stats = _fuel_stats(car.get("fuel", []))
         avg = stats["avg_l_per_100km"]
         if avg is None or avg <= 0:
-            return self._native_or_restored(None)
+            return None
 
         rng = float(cap) * 100.0 / float(avg)
-        return self._native_or_restored(round(rng, 0))
+        return round(rng, 0)
 
     @property
     def extra_state_attributes(self):
@@ -214,17 +198,16 @@ class CarEstimatedRangeSensor(_CarBaseSensor):
         cap = meta.get("tank_capacity_l")
         stats = _fuel_stats(car.get("fuel", []))
         avg = stats["avg_l_per_100km"]
-        return self._attrs_or_restored({
+        return {
             "tank_capacity_l": cap,
             "avg_l_per_100km": round(avg, 2) if avg is not None else None,
             "formula": "tank_capacity_l * 100 / avg_l_per_100km",
-        })
+        }
 
 
 class CarLastFuelSensor(_CarBaseSensor):
     _attr_icon = "mdi:receipt"
     _attr_native_unit_of_measurement = UnitOfVolume.LITERS
-    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, hass, car_id, car_name):
         super().__init__(hass, car_id, car_name)
@@ -236,8 +219,7 @@ class CarLastFuelSensor(_CarBaseSensor):
         car = self._get_car()
         stats = _fuel_stats(car.get("fuel", []))
         last = stats["last"]
-        value = round(float(last.get("liters", 0)), 2) if last else None
-        return self._native_or_restored(value)
+        return round(float(last.get("liters", 0)), 2) if last else None
 
     @property
     def extra_state_attributes(self):
@@ -245,12 +227,12 @@ class CarLastFuelSensor(_CarBaseSensor):
         stats = _fuel_stats(car.get("fuel", []))
         last = stats["last"]
         if not last:
-            return self._attrs_or_restored({})
-        return self._attrs_or_restored({
+            return {}
+        return {
             "odometer_km": last.get("odometer_km"),
             "ts": last.get("ts"),
             "price_total": last.get("price_total"),
-        })
+        }
 
 
 class CarMaintenanceDueSensor(_CarBaseSensor):
@@ -269,7 +251,7 @@ class CarMaintenanceDueSensor(_CarBaseSensor):
         odometer_km = meta.get("odometer_km")
         maint_logs = car.get("maintenance", {}).get(self.maint_type, [])
         due = _maintenance_due(meta, self.maint_type, maint_logs, odometer_km)
-        return self._native_or_restored(due["is_due"])
+        return due["is_due"]
 
     @property
     def extra_state_attributes(self):
@@ -277,7 +259,7 @@ class CarMaintenanceDueSensor(_CarBaseSensor):
         meta = car.get("meta", {})
         odometer_km = meta.get("odometer_km")
         maint_logs = car.get("maintenance", {}).get(self.maint_type, [])
-        return self._attrs_or_restored(_maintenance_due(meta, self.maint_type, maint_logs, odometer_km))
+        return _maintenance_due(meta, self.maint_type, maint_logs, odometer_km)
 
 
 class CarSaveStatusSensor(_CarBaseSensor):
@@ -293,9 +275,9 @@ class CarSaveStatusSensor(_CarBaseSensor):
 
     @property
     def native_value(self):
-        return self._native_or_restored(self._rt().get("state", "idle"))
+        return self._rt().get("state", "idle")
 
     @property
     def extra_state_attributes(self):
         rt = self._rt()
-        return self._attrs_or_restored({"message": rt.get("message", ""), "ts": rt.get("ts")})
+        return {"message": rt.get("message", ""), "ts": rt.get("ts")}
