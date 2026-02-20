@@ -64,6 +64,13 @@ Tankinhoud kan later ook via de entity **Tankinhoud**.
 
 ---
 
+
+## Historie langer dan 1 jaar
+De sensoren zijn ingericht om restore/long-term statistics te ondersteunen, zodat waarden na restart terugkomen en statistieken opgebouwd kunnen worden.
+
+Let op: zichtbaarheid van ruwe history op lange termijn wordt bepaald door je Home Assistant Recorder-configuratie (`purge_keep_days`).
+Wil je meer dan 1 jaar terug kunnen kijken, zet `purge_keep_days` in `configuration.yaml` op minimaal `365` (of hoger).
+
 ## Data / fouten corrigeren
 Data staat in:
 `.storage/carlog_data`
