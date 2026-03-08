@@ -33,6 +33,7 @@ def _ensure_ui_defaults(car: dict) -> None:
     ui.setdefault("odometer_km", car.get("meta", {}).get("odometer_km"))
     ui.setdefault("liters", 0.0)
     ui.setdefault("price_total", 0.0)
+    ui.setdefault("skip_in_calculation", False)
     ui.setdefault("note", "")
     ui.setdefault("maint_type", "oil")
     ui.setdefault("maint_date", None)  # "YYYY-MM-DD" or None
@@ -72,6 +73,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         km = float(call.data["odometer_km"])
         liters = float(call.data["liters"])
         price_total = call.data.get("price_total")
+        skip_in_calculation = bool(call.data.get("skip_in_calculation", False))
         ts = dt.datetime.now(dt.timezone.utc).isoformat()
 
         car = _ensure_car(hass.data[DOMAIN]["data"], car_id)
@@ -83,6 +85,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                 "odometer_km": km,
                 "liters": liters,
                 "price_total": float(price_total) if price_total is not None else None,
+                "skip_in_calculation": skip_in_calculation,
             }
         )
 
@@ -167,6 +170,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         if "price_total" in call.data:
             pt = call.data.get("price_total")
             entry["price_total"] = float(pt) if pt is not None else None
+
+        if "skip_in_calculation" in call.data:
+            entry["skip_in_calculation"] = bool(call.data.get("skip_in_calculation"))
 
         await _save()
 

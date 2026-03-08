@@ -53,6 +53,7 @@ class CarLogFuelButton(_BaseButton):
         km = ui.get("odometer_km")
         liters = ui.get("liters", 0.0)
         price = ui.get("price_total", 0.0)
+        skip_in_calculation = bool(ui.get("skip_in_calculation", False))
 
         # Validatie
         if km is None:
@@ -92,7 +93,12 @@ class CarLogFuelButton(_BaseButton):
 
         set_runtime_status(self.hass, self.car_id, True, "saving", "Bezig met opslaan…")
 
-        data = {"car_id": self.car_id, "odometer_km": km_f, "liters": liters_f}
+        data = {
+            "car_id": self.car_id,
+            "odometer_km": km_f,
+            "liters": liters_f,
+            "skip_in_calculation": skip_in_calculation,
+        }
         if price and float(price) > 0:
             data["price_total"] = float(price)
 
@@ -105,6 +111,7 @@ class CarLogFuelButton(_BaseButton):
         # Reset invoer na succesvolle opslag
         ui["liters"] = 0.0
         ui["price_total"] = 0.0
+        ui["skip_in_calculation"] = False
         await self.hass.data[DOMAIN]["store"].async_save(self.hass.data[DOMAIN]["data"])
 
         set_runtime_status(self.hass, self.car_id, False, "saved", "Opgeslagen ✅")
