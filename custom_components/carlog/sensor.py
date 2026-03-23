@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.const import UnitOfLength, UnitOfVolume
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -138,6 +138,7 @@ class _CarBaseSensor(SensorEntity):
 class CarOdometerSensor(_CarBaseSensor):
     _attr_icon = "mdi:speedometer"
     _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
+    _attr_state_class = SensorStateClass.TOTAL
 
     def __init__(self, hass, car_id, car_name):
         super().__init__(hass, car_id, car_name)
@@ -153,6 +154,7 @@ class CarOdometerSensor(_CarBaseSensor):
 class CarFuelAvgSensor(_CarBaseSensor):
     _attr_icon = "mdi:gas-station"
     _attr_native_unit_of_measurement = "L/100km"
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, hass, car_id, car_name):
         super().__init__(hass, car_id, car_name)
@@ -179,6 +181,7 @@ class CarFuelAvgSensor(_CarBaseSensor):
 class CarEstimatedRangeSensor(_CarBaseSensor):
     _attr_icon = "mdi:map-marker-distance"
     _attr_native_unit_of_measurement = UnitOfLength.KILOMETERS
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, hass, car_id, car_name):
         super().__init__(hass, car_id, car_name)
@@ -218,6 +221,7 @@ class CarEstimatedRangeSensor(_CarBaseSensor):
 class CarLastFuelSensor(_CarBaseSensor):
     _attr_icon = "mdi:receipt"
     _attr_native_unit_of_measurement = UnitOfVolume.LITERS
+    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, hass, car_id, car_name):
         super().__init__(hass, car_id, car_name)
