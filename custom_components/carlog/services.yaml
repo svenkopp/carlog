@@ -30,6 +30,11 @@ log_fuel:
           step: 0.01
           mode: box
           unit_of_measurement: EUR
+    skip_in_calculation:
+      required: false
+      description: Zet op true om deze tankbeurt over te slaan in verbruiksberekeningen.
+      selector:
+        boolean:
 
 update_fuel_entry:
   name: Tankbeurt aanpassen
@@ -67,6 +72,11 @@ update_fuel_entry:
           step: 0.01
           mode: box
           unit_of_measurement: EUR
+    skip_in_calculation:
+      required: false
+      description: Zet op true om deze tankbeurt over te slaan in verbruiksberekeningen.
+      selector:
+        boolean:
 
 delete_fuel_entry:
   name: Tankbeurt verwijderen

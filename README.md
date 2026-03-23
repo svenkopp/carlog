@@ -58,7 +58,7 @@ Tankinhoud kan later ook via de entity **Tankinhoud**.
 **Invoer (helpers)**
 - Number: Kilometerstand (invoer), Liters (invoer), Totaalprijs (invoer), Tankinhoud
 - Text: Notitie (invoer)
-- Select: Onderhoudstype (invoer)
+- Select: Onderhoudstype (invoer), Tankbeurt overslaan in berekening (invoer)
 - Date: Onderhoudsdatum (optioneel)
 - Buttons: Log tankbeurt, Log onderhoud
 

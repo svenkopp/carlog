@@ -14,13 +14,19 @@ from .__init__ import SIGNAL_UPDATED
 
 def _fuel_stats(fuel_logs: list[dict]) -> dict:
     if len(fuel_logs) < 2:
-        return {"avg_l_per_100km": None, "last": fuel_logs[-1] if fuel_logs else None}
+        return {"avg_l_per_100km": None, "last": fuel_logs[-1] if fuel_logs else None, "skipped_entries": 0}
 
     logs = sorted(fuel_logs, key=lambda x: x.get("ts", ""))
     total_l = 0.0
     total_km = 0.0
 
+    skipped_entries = 0
+
     for prev, cur in zip(logs[:-1], logs[1:]):
+        if bool(cur.get("skip_in_calculation", False)):
+            skipped_entries += 1
+            continue
+
         dk = float(cur.get("odometer_km", 0)) - float(prev.get("odometer_km", 0))
         if dk <= 0:
             continue
@@ -28,7 +34,7 @@ def _fuel_stats(fuel_logs: list[dict]) -> dict:
         total_l += float(cur.get("liters", 0))
 
     avg = (total_l / total_km * 100.0) if total_km > 0 else None
-    return {"avg_l_per_100km": avg, "last": logs[-1]}
+    return {"avg_l_per_100km": avg, "last": logs[-1], "skipped_entries": skipped_entries}
 
 
 def _last_maintenance(maint_logs: list[dict]) -> dict | None:
@@ -163,7 +169,11 @@ class CarFuelAvgSensor(_CarBaseSensor):
     @property
     def extra_state_attributes(self):
         car = self._get_car()
-        return {"tankbeurten": len(car.get("fuel", []))}
+        stats = _fuel_stats(car.get("fuel", []))
+        return {
+            "tankbeurten": len(car.get("fuel", [])),
+            "overgeslagen_in_berekening": stats.get("skipped_entries", 0),
+        }
 
 
 class CarEstimatedRangeSensor(_CarBaseSensor):
