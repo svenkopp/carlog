@@ -37,6 +37,26 @@ def _fuel_stats(fuel_logs: list[dict]) -> dict:
     return {"avg_l_per_100km": avg, "last": logs[-1], "skipped_entries": skipped_entries}
 
 
+def _latest_fuel_price(fuel_logs: list[dict]) -> dict | None:
+    """Return the newest fuel log containing a usable total price."""
+    for log in sorted(fuel_logs, key=lambda x: x.get("ts", ""), reverse=True):
+        try:
+            liters = float(log.get("liters", 0))
+            price_total = float(log["price_total"])
+        except (KeyError, TypeError, ValueError):
+            continue
+
+        if liters > 0 and price_total > 0:
+            return {
+                "price_per_liter": price_total / liters,
+                "price_total": price_total,
+                "liters": liters,
+                "ts": log.get("ts"),
+            }
+
+    return None
+
+
 def _last_maintenance(maint_logs: list[dict]) -> dict | None:
     if not maint_logs:
         return None
@@ -94,6 +114,7 @@ async def async_setup_entry(hass: HomeAssistant, entry, async_add_entities: AddE
         [
             CarOdometerSensor(hass, car_id, name),
             CarFuelAvgSensor(hass, car_id, name),
+            CarFuelCostPerKmSensor(hass, car_id, name),
             CarEstimatedRangeSensor(hass, car_id, name),
             CarLastFuelSensor(hass, car_id, name),
             CarSaveStatusSensor(hass, car_id, name),
@@ -175,6 +196,41 @@ class CarFuelAvgSensor(_CarBaseSensor):
         return {
             "tankbeurten": len(car.get("fuel", [])),
             "overgeslagen_in_berekening": stats.get("skipped_entries", 0),
+        }
+
+
+class CarFuelCostPerKmSensor(_CarBaseSensor):
+    _attr_icon = "mdi:cash-multiple"
+    _attr_native_unit_of_measurement = "EUR/km"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, hass, car_id, car_name):
+        super().__init__(hass, car_id, car_name)
+        self._attr_name = "Kosten per kilometer"
+        self._attr_unique_id = f"{car_id}_fuel_cost_per_km"
+
+    @property
+    def native_value(self):
+        car = self._get_car()
+        avg = _fuel_stats(car.get("fuel", []))["avg_l_per_100km"]
+        price = _latest_fuel_price(car.get("fuel", []))
+        if avg is None or price is None:
+            return None
+
+        cost_per_km = float(avg) / 100.0 * price["price_per_liter"]
+        return round(cost_per_km, 3)
+
+    @property
+    def extra_state_attributes(self):
+        car = self._get_car()
+        avg = _fuel_stats(car.get("fuel", []))["avg_l_per_100km"]
+        price = _latest_fuel_price(car.get("fuel", []))
+        return {
+            "avg_l_per_100km": round(avg, 2) if avg is not None else None,
+            "latest_price_per_liter": round(price["price_per_liter"], 3) if price else None,
+            "latest_price_total": price["price_total"] if price else None,
+            "latest_price_ts": price["ts"] if price else None,
+            "formula": "avg_l_per_100km / 100 * latest_price_per_liter",
         }
 
 
