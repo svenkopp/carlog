@@ -47,6 +47,7 @@ Tankinhoud kan later ook via de entity **Tankinhoud**.
 **Sensors**
 - Kilometerstand
 - Gemiddeld verbruik (L/100km)
+- Kosten per kilometer (EUR/km), op basis van het gemiddelde verbruik en de laatst opgegeven totaalprijs
 - Gemiddelde actieradius (km) = `tank_capacity_l * 100 / avg_l_per_100km`
 - Laatste tankbeurt liters
 - Opslaan status (idle/saving/saved/error)
